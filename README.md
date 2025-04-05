@@ -1,1 +1,1 @@
-# clinate-predictor
+# climate-predictor
