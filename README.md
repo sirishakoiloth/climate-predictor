@@ -39,6 +39,3 @@ Yameen Ahmed, Sirisha Koiloth, Ayush Acharya, Aneeta Antony, Harsha Gundavelli, 
 University of Texas at Dallas
 
 ## License
-
-MIT — free to use, improve, and share with attribution.
-
