@@ -1,10 +1,22 @@
+import os
+import subprocess
+import sys
+
+# Ensure python-dotenv is installed
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "python-dotenv"])
+    from dotenv import load_dotenv
+
 import requests
 import pandas as pd
-from dotenv import load_dotenv
-import os
 
 load_dotenv()
 NOAA_TOKEN = os.getenv("NOAA_TOKEN")
+
+# Ensure the output directory exists
+os.makedirs("data/raw", exist_ok=True)
 
 def fetch_noaa_temperature(state_fips, start_year=2010, end_year=2020):
     headers = {"token": NOAA_TOKEN}
@@ -21,13 +33,23 @@ def fetch_noaa_temperature(state_fips, start_year=2010, end_year=2020):
             "limit": 1000
         }
         response = requests.get(base_url, headers=headers, params=params)
-        if response.status_code == 200 and "results" in response.json():
-            df = pd.DataFrame(response.json()["results"])
-            df["year"] = year
-            results.append(df)
+        if response.status_code == 200:
+            data = response.json()
+            if "results" in data:
+                df = pd.DataFrame(data["results"])
+                df["year"] = year
+                results.append(df)
+            else:
+                print(f"No results found for year {year}.")
+        else:
+            print(f"Failed to fetch data for year {year}. Status code: {response.status_code}")
 
-    final_df = pd.concat(results, ignore_index=True)
-    final_df.to_csv("data/raw/noaa_temp_texas.csv", index=False)
+    if results:
+        final_df = pd.concat(results, ignore_index=True)
+        final_df.to_csv("data/raw/noaa_temp_texas.csv", index=False)
+        print("Data successfully saved to data/raw/noaa_temp_texas.csv")
+    else:
+        print("No data fetched. The results list is empty.")
 
 def fetch_fema_disasters():
     fema_url = "https://www.fema.gov/api/open/v2/DisasterDeclarationsSummaries?$format=csv"
