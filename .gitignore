@@ -1,0 +1,18 @@
+# API keys and sensitive configs
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Machine learning models
+*.pkl
+
+# Raw or large data files
+*.csv
+
+# Mac system files
+.DS_Store
+
+# Jupyter Notebook checkpoints
+*.ipynb_checkpoints/
