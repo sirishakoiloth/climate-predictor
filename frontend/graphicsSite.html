@@ -145,7 +145,7 @@
         </div>
         
         <footer>
-            <p>© 2025 Climate Prediction Project | Sample data FEMA and NASA</p>
+            <p>© 2025 National Climate Change Forecaster | Sample data from FEMA and NASA</p>
         </footer>
     </div>
 
@@ -235,17 +235,29 @@
 
                 // Fill info box with climate data
                 let infoHtml = '';
-                if (abbr && climateRiskData[abbr] && climateRiskData[abbr].topDisasterType !== "No Data") {
+                if (abbr && climateRiskData[abbr] && climateRiskData[abbr].riskCategory !== "No Data") { // Check riskCategory instead of topDisasterType for data validity
                     let data = climateRiskData[abbr];
                     infoHtml = `
                         <b>Risk Score:</b> ${data.riskScore}<br>
                         <b>Risk Category:</b> <span style="color:${data.color}">${data.riskCategory}</span><br>
-                        <b>Top Disaster Type:</b> ${data.topDisasterType}<br>
-                        <b>Total Disasters:</b> ${data.totalDisasters}<br>
-                        <b>Next Year Trend:</b> ${data.nextYearTrend}
+                        <b>Top Disaster Type (Recent):</b> ${data.topDisasterType}<br>
+                        <b>Total Disasters (Historical):</b> ${data.totalDisasters}<br>
+                        <hr style="border-top: 1px solid #555; margin: 5px 0;">
+                        <b>Predicted Trend:</b> ${data.nextYearTrend}<br>
+                        <b>Predicted Trend (Decade):</b> ${data.decadeAnomalyPrediction}
                     `;
                 } else {
-                    infoHtml = `<i>No climate risk data available for this state.</i>`;
+                    // Attempt to show basic info even if risk calculation failed for some reason
+                    let basicInfo = climateRiskData[abbr] || {}; // Get data if exists
+                    let totalDisasters = basicInfo.totalDisasters !== undefined ? basicInfo.totalDisasters : 'N/A';
+                    infoHtml = `
+                        <i>Climate risk data incomplete.</i><br>
+                        <b>Total Disasters (Historical):</b> ${totalDisasters}
+                    `;
+                    // Optionally add decade prediction if it exists even without full risk score
+                    if (basicInfo.decadeAnomalyPrediction && basicInfo.decadeAnomalyPrediction !== "N/A") {
+                        infoHtml += `<br><b>Predicted Trend (Decade):</b> ${basicInfo.decadeAnomalyPrediction}`;
+                    }
                 }
                 document.getElementById('stateInfo').innerHTML = infoHtml;
 
