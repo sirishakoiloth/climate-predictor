@@ -7,7 +7,7 @@ def process_state_temperature():
     df = df.rename(columns={"temperature": "avg_temp"})
     df = df[["state", "year", "avg_temp"]]
     df.to_csv("data/processed/temp_by_state_year.csv", index=False)
-    print("✅ Processed state-level annual temperature data")
+    print("Processed state-level annual temperature data")
 
 if __name__ == "__main__":
     process_state_temperature()
