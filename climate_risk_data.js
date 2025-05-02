@@ -1,0 +1,410 @@
+const climateRiskData = {
+  "AL": {
+    "riskScore": 26.8,
+    "riskCategory": "Low",
+    "color": "#91bfdb",
+    "topDisasterType": "Tornado",
+    "totalDisasters": 1,
+    "nextYearTrend": 6.0
+  },
+  "AR": {
+    "riskScore": 25.0,
+    "riskCategory": "Low",
+    "color": "#91bfdb",
+    "topDisasterType": "Severe Storm",
+    "totalDisasters": 1,
+    "nextYearTrend": 6.0
+  },
+  "AZ": {
+    "riskScore": 25.7,
+    "riskCategory": "Low",
+    "color": "#91bfdb",
+    "topDisasterType": "Fire",
+    "totalDisasters": 1,
+    "nextYearTrend": 6.0
+  },
+  "CA": {
+    "riskScore": 51.0,
+    "riskCategory": "Medium",
+    "color": "#ffffbf",
+    "topDisasterType": "Fire",
+    "totalDisasters": 2,
+    "nextYearTrend": 7.0
+  },
+  "FL": {
+    "riskScore": 54.0,
+    "riskCategory": "Medium",
+    "color": "#ffffbf",
+    "topDisasterType": "Hurricane",
+    "totalDisasters": 2,
+    "nextYearTrend": 7.0
+  },
+  "GA": {
+    "riskScore": 28.9,
+    "riskCategory": "Low",
+    "color": "#91bfdb",
+    "topDisasterType": "Hurricane",
+    "totalDisasters": 1,
+    "nextYearTrend": 6.0
+  },
+  "HI": {
+    "riskScore": 23.3,
+    "riskCategory": "Low",
+    "color": "#91bfdb",
+    "topDisasterType": "Flood",
+    "totalDisasters": 1,
+    "nextYearTrend": 6.0
+  },
+  "IN": {
+    "riskScore": 25.0,
+    "riskCategory": "Low",
+    "color": "#91bfdb",
+    "topDisasterType": "Severe Storm",
+    "totalDisasters": 1,
+    "nextYearTrend": 6.0
+  },
+  "KY": {
+    "riskScore": 81.5,
+    "riskCategory": "Very High",
+    "color": "#d73027",
+    "topDisasterType": "Severe Storm",
+    "totalDisasters": 2,
+    "nextYearTrend": 9.0
+  },
+  "MI": {
+    "riskScore": 46.8,
+    "riskCategory": "Medium",
+    "color": "#ffffbf",
+    "topDisasterType": "Flood",
+    "totalDisasters": 2,
+    "nextYearTrend": 7.0
+  },
+  "MO": {
+    "riskScore": 25.0,
+    "riskCategory": "Low",
+    "color": "#91bfdb",
+    "topDisasterType": "Severe Storm",
+    "totalDisasters": 1,
+    "nextYearTrend": 6.0
+  },
+  "NJ": {
+    "riskScore": 23.3,
+    "riskCategory": "Low",
+    "color": "#91bfdb",
+    "topDisasterType": "Flood",
+    "totalDisasters": 1,
+    "nextYearTrend": 6.0
+  },
+  "NY": {
+    "riskScore": 23.3,
+    "riskCategory": "Low",
+    "color": "#91bfdb",
+    "topDisasterType": "Flood",
+    "totalDisasters": 1,
+    "nextYearTrend": 6.0
+  },
+  "OR": {
+    "riskScore": 51.0,
+    "riskCategory": "Medium",
+    "color": "#ffffbf",
+    "topDisasterType": "Fire",
+    "totalDisasters": 2,
+    "nextYearTrend": 7.0
+  },
+  "TX": {
+    "riskScore": 22.7,
+    "riskCategory": "Low",
+    "color": "#91bfdb",
+    "topDisasterType": "Drought",
+    "totalDisasters": 1,
+    "nextYearTrend": 6.0
+  },
+  "WA": {
+    "riskScore": 23.3,
+    "riskCategory": "Low",
+    "color": "#91bfdb",
+    "topDisasterType": "Flood",
+    "totalDisasters": 1,
+    "nextYearTrend": 6.0
+  },
+  "WV": {
+    "riskScore": 25.0,
+    "riskCategory": "Low",
+    "color": "#91bfdb",
+    "topDisasterType": "Severe Storm",
+    "totalDisasters": 1,
+    "nextYearTrend": 6.0
+  },
+  "AK": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "CO": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "CT": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "DE": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "ID": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "IL": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "IA": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "KS": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "LA": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "ME": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "MD": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "MA": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "MN": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "MS": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "MT": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "NE": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "NV": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "NH": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "NM": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "NC": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "ND": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "OH": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "OK": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "PA": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "RI": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "SC": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "SD": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "TN": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "UT": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "VT": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "VA": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "WI": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "WY": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  },
+  "DC": {
+    "riskScore": 0.0,
+    "riskCategory": "Very Low",
+    "color": "#4575b4",
+    "topDisasterType": "No Data",
+    "totalDisasters": 0,
+    "nextYearTrend": 5.0
+  }
+};
