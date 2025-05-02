@@ -9,7 +9,7 @@ def process_monthly_temperature():
     monthly_avg.columns = [col.lower().strip().replace(" ", "_") for col in monthly_avg.columns]
     monthly_avg = monthly_avg.rename(columns={"state": "state"})
     monthly_avg.to_csv("data/processed/monthly_temp_by_state.csv", index=False)
-    print("✅ Processed monthly average temperature by state")
+    print("Processed monthly average temperature by state")
 
 if __name__ == "__main__":
     process_monthly_temperature()
