@@ -10,7 +10,7 @@ def process_fema_disasters():
     grouped = df.groupby(["state", "year", "incidentType"]).size().reset_index(name="count")
     pivoted = grouped.pivot(index=["state", "year"], columns="incidentType", values="count").fillna(0).reset_index()
     pivoted.to_csv("data/processed/fema_disasters_by_state.csv", index=False)
-    print("✅ Processed FEMA disaster declarations")
+    print("Processed FEMA disaster declarations")
 
 if __name__ == "__main__":
     process_fema_disasters()
