@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import TimeSeriesSplit # Changed from train_test_split
+from sklearn.model_selection import TimeSeriesSplit
 from sklearn.linear_model import Ridge
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score # Added MAE and R2
 from sklearn.preprocessing import MinMaxScaler
 import json
 import os
@@ -13,10 +13,10 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 # --- Configuration ---
 TEMP_MONTHLY_FILE = 'data/raw/average_monthly_temperature_by_state_1950-2022.csv'
 TEMP_YEARLY_FILE = 'data/raw/climdiv_state_year.csv'
-FEMA_FILE = 'data/raw/DisasterDeclarationsSummaries.csv'
+FEMA_FILE = 'data/raw/DisasterDeclarationsSummaries.csv' # Make sure this filename is correct
 OUTPUT_JS_FILE = 'climate_risk_data.js'
-N_CV_SPLITS = 5 # Number of splits for Time Series Cross-Validation
-PREDICTION_HORIZON_YEARS = 10 # Predict this many years into the future
+N_CV_SPLITS = 5
+PREDICTION_HORIZON_YEARS = 10
 
 # Create output directory if it doesn't exist
 output_dir = os.path.dirname(OUTPUT_JS_FILE)
@@ -41,11 +41,23 @@ state_abbr_to_fips = {v: k for k, v in fips_to_state_abbr.items()}
 print("Loading data...")
 try:
     df_temp_yearly = pd.read_csv(TEMP_YEARLY_FILE, index_col='index')
+    # Check FEMA file columns - needs 'state', 'declarationDate', 'incidentType'
     df_fema = pd.read_csv(FEMA_FILE)
+    # Verify required columns exist
+    required_fema_cols = ['state', 'declarationDate', 'incidentType']
+    if not all(col in df_fema.columns for col in required_fema_cols):
+        print(f"Error: FEMA file '{FEMA_FILE}' is missing one or more required columns: {required_fema_cols}")
+        print(f"Available columns: {df_fema.columns.tolist()}")
+        exit()
+
 except FileNotFoundError as e:
     print(f"Error loading file: {e}")
-    print("Please ensure the CSV files are in the 'data/raw/' directory.")
+    print(f"Please ensure '{TEMP_YEARLY_FILE}' and '{FEMA_FILE}' are in the 'data/raw/' directory.")
     exit()
+except Exception as e:
+    print(f"An error occurred during data loading: {e}")
+    exit()
+
 
 # --- 2. Preprocess Data ---
 print("Preprocessing data...")
@@ -65,15 +77,36 @@ df_temp_yearly['tempc_anomaly'] = df_temp_yearly.apply(
 df_temp_yearly = df_temp_yearly.sort_values(by=['state_abbr', 'year'])
 
 # -- FEMA Disaster Data --
-df_fema['declarationDate'] = pd.to_datetime(df_fema['declarationDate'])
-df_fema['year'] = df_fema['declarationDate'].dt.year
-df_fema = df_fema.rename(columns={'state': 'state_abbr'})
-disaster_counts = df_fema.groupby(['state_abbr', 'year']).size().reset_index(name='disaster_count')
-recent_years_for_top_disaster = 5
-current_max_year_fema = df_fema['year'].max()
-df_fema_recent = df_fema[df_fema['year'] > current_max_year_fema - recent_years_for_top_disaster]
-top_disasters = df_fema_recent.groupby('state_abbr')['incidentType'].agg(lambda x: x.mode()[0] if not x.mode().empty else 'N/A').reset_index()
-top_disasters = top_disasters.rename(columns={'incidentType': 'top_disaster_type'})
+try:
+    df_fema['declarationDate'] = pd.to_datetime(df_fema['declarationDate'], errors='coerce') # Handle potential parsing errors
+    df_fema = df_fema.dropna(subset=['declarationDate']) # Drop rows where date couldn't be parsed
+    df_fema['year'] = df_fema['declarationDate'].dt.year
+    df_fema = df_fema.rename(columns={'state': 'state_abbr'})
+    # Ensure state_abbr exists and filter for valid ones if needed
+    df_fema = df_fema[df_fema['state_abbr'].isin(state_abbr_to_fips.keys())]
+
+    disaster_counts = df_fema.groupby(['state_abbr', 'year']).size().reset_index(name='disaster_count')
+
+    recent_years_for_top_disaster = 5
+    # Handle case where FEMA data might be older than temp data
+    current_max_year_fema = df_fema['year'].max() if not df_fema.empty else baseline_start_year -1 # Avoid error if df_fema is empty
+
+    df_fema_recent = df_fema[df_fema['year'] > current_max_year_fema - recent_years_for_top_disaster]
+
+    # Aggregate top disasters carefully, handling empty groups
+    top_disasters_agg = df_fema_recent.groupby('state_abbr')['incidentType'].agg(
+        lambda x: x.mode()[0] if not x.mode().empty else 'N/A'
+    )
+    top_disasters = top_disasters_agg.reset_index()
+    top_disasters = top_disasters.rename(columns={'incidentType': 'top_disaster_type'})
+
+except KeyError as e:
+    print(f"Error processing FEMA data: Missing column {e}. Please check '{FEMA_FILE}'.")
+    exit()
+except Exception as e:
+    print(f"An error occurred during FEMA data preprocessing: {e}")
+    exit()
+
 
 # -- Merge Data --
 print("Merging datasets...")
@@ -82,7 +115,6 @@ df_merged = pd.merge(
     disaster_counts, on=['state_abbr', 'year'], how='left'
 )
 df_merged['disaster_count'] = df_merged['disaster_count'].fillna(0).astype(int)
-# Sort essential for time series features and splitting
 df_merged = df_merged.sort_values(by=['state_abbr', 'year'])
 
 
@@ -97,6 +129,11 @@ df_model_data = df_merged.dropna(subset=[
     'disaster_count_prev_year', 'target_tempc_anomaly_next_year'
 ]).copy()
 
+if df_model_data.empty:
+    print("Error: No data available for modeling after feature engineering and NaN removal.")
+    print("This might be due to insufficient overlapping data between temperature and disaster datasets.")
+    exit()
+
 # Sort by year for TimeSeriesSplit
 df_model_data = df_model_data.sort_values(by='year')
 
@@ -107,11 +144,15 @@ X = df_model_data[features]
 y = df_model_data[target]
 
 # --- 4. Machine Learning Model & Time Series Cross-Validation ---
-print(f"Performing Time Series Cross-Validation with {N_CV_SPLITS} splits...")
+print(f"\nPerforming Time Series Cross-Validation with {N_CV_SPLITS} splits...")
 
 tscv = TimeSeriesSplit(n_splits=N_CV_SPLITS)
-model = Ridge(alpha=1.0)
+model = Ridge(alpha=1.0) # Alpha=1.0 is a common default, adjust if needed
+
+# Store scores for each fold
 rmse_scores = []
+mae_scores = []
+r2_scores = []
 
 fold = 0
 for train_index, val_index in tscv.split(X):
@@ -119,22 +160,43 @@ for train_index, val_index in tscv.split(X):
     X_train, X_val = X.iloc[train_index], X.iloc[val_index]
     y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
-    # Handle potential NaNs introduced within splits if any (unlikely with prior dropna but safe)
-    X_train = X_train.fillna(X_train.median())
-    X_val = X_val.fillna(X_train.median()) # Fill val NaNs with train median
+    # Handle potential NaNs (median imputation)
+    X_train_median = X_train.median() # Calculate median on train split only
+    X_train = X_train.fillna(X_train_median)
+    X_val = X_val.fillna(X_train_median) # Apply train median to val split
 
     model.fit(X_train, y_train)
     y_pred_val = model.predict(X_val)
+
+    # Calculate metrics for this fold
     rmse = np.sqrt(mean_squared_error(y_val, y_pred_val))
+    mae = mean_absolute_error(y_val, y_pred_val)
+    r2 = r2_score(y_val, y_pred_val)
+
     rmse_scores.append(rmse)
-    print(f"Fold {fold}/{N_CV_SPLITS} - Validation RMSE: {rmse:.4f}")
+    mae_scores.append(mae)
+    r2_scores.append(r2)
 
-print(f"\nAverage Cross-Validation RMSE: {np.mean(rmse_scores):.4f} +/- {np.std(rmse_scores):.4f}")
+    print(f"Fold {fold}/{N_CV_SPLITS} - Val RMSE: {rmse:.4f}, Val MAE: {mae:.4f}, Val R²: {r2:.4f}")
 
-# --- Retrain final model on ALL available data for prediction ---
+# Calculate average and std dev of scores across folds
+avg_cv_rmse = np.mean(rmse_scores)
+std_cv_rmse = np.std(rmse_scores)
+avg_cv_mae = np.mean(mae_scores)
+std_cv_mae = np.std(mae_scores)
+avg_cv_r2 = np.mean(r2_scores)
+std_cv_r2 = np.std(r2_scores)
+
+print("\n--- Cross-Validation Summary ---")
+print(f"Average RMSE: {avg_cv_rmse:.4f} (+/- {std_cv_rmse:.4f})")
+print(f"Average MAE:  {avg_cv_mae:.4f} (+/- {std_cv_mae:.4f})")
+print(f"Average R²:   {avg_cv_r2:.4f} (+/- {std_cv_r2:.4f})")
+print("---------------------------------")
+
+# --- Retrain final model on ALL available data ---
 print("\nRetraining final model on all available data...")
-# Ensure no NaNs in the final training data (should be handled by dropna earlier)
-X = X.fillna(X.median())
+X_full_median = X.median() # Calculate median on the full dataset
+X = X.fillna(X_full_median)
 model.fit(X, y)
 print("Final model trained.")
 
@@ -142,72 +204,51 @@ print("Final model trained.")
 # --- 5. Iterative Prediction for Next Decade & Risk Calculation ---
 print(f"\nPredicting next {PREDICTION_HORIZON_YEARS} years' anomaly and calculating risk...")
 
-# Get the latest data row for each state to start the prediction
 last_year_data_full = df_merged.loc[df_merged.groupby('state_abbr')['year'].idxmax()]
 last_known_year = last_year_data_full['year'].max()
 print(f"Last known year in data: {last_known_year}")
 print(f"Predicting from {last_known_year + 1} to {last_known_year + PREDICTION_HORIZON_YEARS}")
 
-# Initialize DataFrame to store predictions
-future_predictions = {} # Dict to store state-specific predictions
-
-# Prepare the initial input for the first prediction step (Year N+1)
-# Using the actual last available data
+future_predictions = {}
 current_features = last_year_data_full.set_index('state_abbr')[[
     'year', 'tempc_anomaly', 'tempc_anomaly_prev_year',
     'disaster_count', 'disaster_count_prev_year'
 ]].copy()
 
-# Fill NaNs in initial features (e.g., if a state only has 1 year of data)
-feature_medians = X.median() # Use medians from the full training set
+# Fill NaNs in initial features using medians from the full training set (X)
 for col in features:
     if current_features[col].isnull().any():
-        fill_value = feature_medians[col]
+        fill_value = X_full_median[col] # Use median calculated before final training
         print(f"Warning: Filling initial NaN in '{col}' with median {fill_value:.2f}")
         current_features[col] = current_features[col].fillna(fill_value)
 
-
-# Iteratively predict for the horizon
+predicted_anomalies_decade = {}
 all_states_in_prediction = current_features.index.unique()
-predicted_anomalies_decade = {} # Store final 10th year prediction
 
 for i in range(PREDICTION_HORIZON_YEARS):
     predict_yr = last_known_year + 1 + i
     current_features['year'] = predict_yr
+    X_step = current_features[features].fillna(X_full_median) # Ensure no NaNs passed to predict
 
-    # Ensure columns are in the exact order the model expects
-    X_step = current_features[features]
-
-    # Predict anomaly for the current step year
     step_predictions = model.predict(X_step)
     predicted_anomaly_series = pd.Series(step_predictions, index=X_step.index)
-
-    # Store the prediction for this step (needed for next step's input)
     future_predictions[predict_yr] = predicted_anomaly_series
 
-    # Prepare features for the *next* iteration
-    # The predicted anomaly becomes the 'current' anomaly for the next step
-    # The 'current' anomaly becomes the 'previous' anomaly for the next step
-    next_tempc_anomaly_prev = current_features['tempc_anomaly'].copy() # Store before overwriting
+    next_tempc_anomaly_prev = current_features['tempc_anomaly'].copy()
     current_features['tempc_anomaly'] = predicted_anomaly_series
     current_features['tempc_anomaly_prev_year'] = next_tempc_anomaly_prev
 
-    # Keep disaster counts constant at their last known values (simplification)
-    # They are already in current_features and don't need updating in this loop
-
-    # Store the final prediction (10 years out)
     if i == PREDICTION_HORIZON_YEARS - 1:
         predicted_anomalies_decade = predicted_anomaly_series.copy()
 
-# Get the prediction for the very next year (Year N+1) for risk score calculation
 predicted_anomalies_next_year = future_predictions[last_known_year + 1]
 
-# --- Risk Score Calculation (Based on NEXT year's prediction) ---
+# --- Risk Score Calculation ---
 recent_disaster_avg = df_merged[df_merged['year'] > last_known_year - 5]\
     .groupby('state_abbr')['disaster_count'].mean().fillna(0)
 
 risk_components = pd.DataFrame({
-    'predicted_anomaly': predicted_anomalies_next_year, # Use next year's prediction
+    'predicted_anomaly': predicted_anomalies_next_year,
     'recent_disasters': recent_disaster_avg
 }).reindex(fips_to_state_abbr.values()).fillna(0)
 
@@ -224,16 +265,31 @@ risk_components_scaled['risk_score'] = (weight_anomaly * risk_components_scaled[
 risk_components_scaled['risk_score'] = (risk_components_scaled['risk_score'] * 100).round(1)
 
 quantiles = risk_components_scaled['risk_score'].quantile([0.2, 0.4, 0.6, 0.8]).to_dict()
-def get_risk_category_and_color(score):
-    # Handle potential edge case where quantiles might be equal if data is sparse/uniform
-    q = sorted(quantiles.values())
-    if score <= q[0]: return "Very Low", "#4575b4"
-    elif score <= q[1]: return "Low", "#91bfdb"
-    elif score <= q[2]: return "Medium", "#ffffbf"
-    elif score <= q[3]: return "High", "#fc8d59"
+# Check for non-unique quantile values which can happen with sparse/uniform data
+unique_quantiles = sorted(list(set(quantiles.values())))
+if len(unique_quantiles) < 4:
+    print("\nWarning: Risk score quantiles are not unique. Adjusting categories based on available breaks.")
+    # Simplified categorization if quantiles are collapsed
+    if len(unique_quantiles) == 1: # Only one value
+        quantiles[0.2]=quantiles[0.4]=quantiles[0.6]=quantiles[0.8]=unique_quantiles[0]
+    elif len(unique_quantiles) == 2: # Two values
+        quantiles[0.2]=quantiles[0.4]=unique_quantiles[0]
+        quantiles[0.6]=quantiles[0.8]=unique_quantiles[1]
+    elif len(unique_quantiles) == 3: # Three values
+         quantiles[0.2]=unique_quantiles[0]
+         quantiles[0.4]=quantiles[0.6]=unique_quantiles[1]
+         quantiles[0.8]=unique_quantiles[2]
+
+def get_risk_category_and_color(score, q_map):
+    q_vals = sorted(q_map.values()) # Use potentially adjusted quantiles
+    # Use <= for ranges to ensure every value falls into a category
+    if score <= q_vals[0]: return "Very Low", "#4575b4"
+    elif score <= q_vals[1]: return "Low", "#91bfdb"
+    elif score <= q_vals[2]: return "Medium", "#ffffbf"
+    elif score <= q_vals[3]: return "High", "#fc8d59"
     else: return "Very High", "#d73027"
 
-risk_categories_colors = risk_components_scaled['risk_score'].apply(get_risk_category_and_color)
+risk_categories_colors = risk_components_scaled['risk_score'].apply(get_risk_category_and_color, q_map=quantiles)
 risk_components_scaled['riskCategory'] = risk_categories_colors.apply(lambda x: x[0])
 risk_components_scaled['color'] = risk_categories_colors.apply(lambda x: x[1])
 
@@ -251,39 +307,48 @@ for state_abbr in all_states:
         "topDisasterType": "No Data",
         "totalDisasters": 0,
         "nextYearTrend": "N/A",
-        "decadeAnomalyPrediction": "N/A" # New field
+        "decadeAnomalyPrediction": "N/A"
     }
 
     if state_abbr in risk_components_scaled.index:
         risk_info = risk_components_scaled.loc[state_abbr]
-        state_data["riskScore"] = risk_info['risk_score']
+        # Check for NaN risk score before assigning
+        state_data["riskScore"] = risk_info['risk_score'] if pd.notna(risk_info['risk_score']) else "N/A"
         state_data["riskCategory"] = risk_info['riskCategory']
         state_data["color"] = risk_info['color']
 
     if state_abbr in predicted_anomalies_next_year.index:
         trend_val = predicted_anomalies_next_year.loc[state_abbr]
-        state_data["nextYearTrend"] = f"{trend_val:+.2f}°C Anomaly (1yr)"
+        state_data["nextYearTrend"] = f"{trend_val:+.2f}°C Anomaly (1yr)" if pd.notna(trend_val) else "N/A"
 
-    # Add the decade prediction
     if state_abbr in predicted_anomalies_decade.index:
         decade_val = predicted_anomalies_decade.loc[state_abbr]
-        state_data["decadeAnomalyPrediction"] = f"{decade_val:+.2f}°C Anomaly ({PREDICTION_HORIZON_YEARS}yr)"
-    else:
-         # Handle cases where prediction might have failed for a state if initial data was bad
-         state_data["decadeAnomalyPrediction"] = "Prediction Error"
-
+        state_data["decadeAnomalyPrediction"] = f"{decade_val:+.2f}°C Anomaly ({PREDICTION_HORIZON_YEARS}yr)" if pd.notna(decade_val) else "Prediction Error"
 
     if state_abbr in top_disasters['state_abbr'].values:
          state_data["topDisasterType"] = top_disasters.loc[top_disasters['state_abbr'] == state_abbr, 'top_disaster_type'].iloc[0]
 
-    total_hist_disasters = df_fema[df_fema['state_abbr'] == state_abbr].shape[0]
-    state_data["totalDisasters"] = total_hist_disasters
+    # Ensure df_fema is filtered correctly before counting
+    if not df_fema.empty and 'state_abbr' in df_fema.columns:
+        total_hist_disasters = df_fema[df_fema['state_abbr'] == state_abbr].shape[0]
+        state_data["totalDisasters"] = total_hist_disasters
+    else:
+        state_data["totalDisasters"] = 0 # Or N/A if preferred
 
     climate_risk_data_dict[state_abbr] = state_data
 
-# Convert dictionary to JSON string, then format as JavaScript variable
+# Convert state data dictionary to JSON
 json_string = json.dumps(climate_risk_data_dict, indent=4)
-js_output = f"const climateRiskData = {json_string};"
+
+# Create JavaScript output string including the state data AND the validation RMSE
+# Added a separate variable for the validation metric
+js_output = f"""
+// Climate risk data for each state
+const climateRiskData = {json_string};
+
+// Average Root Mean Squared Error from Time Series Cross-Validation
+const validationRMSE = {avg_cv_rmse:.4f};
+"""
 
 # Write to file
 try:

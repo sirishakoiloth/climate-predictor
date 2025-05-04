@@ -1,3 +1,5 @@
+
+// Climate risk data for each state
 const climateRiskData = {
     "AL": {
         "riskScore": 59.4,
@@ -15,7 +17,7 @@ const climateRiskData = {
         "topDisasterType": "Flood",
         "totalDisasters": 340,
         "nextYearTrend": "N/A",
-        "decadeAnomalyPrediction": "Prediction Error"
+        "decadeAnomalyPrediction": "N/A"
     },
     "AZ": {
         "riskScore": 32.1,
@@ -78,7 +80,7 @@ const climateRiskData = {
         "topDisasterType": "Other",
         "totalDisasters": 23,
         "nextYearTrend": "N/A",
-        "decadeAnomalyPrediction": "Prediction Error"
+        "decadeAnomalyPrediction": "N/A"
     },
     "FL": {
         "riskScore": 78.0,
@@ -105,7 +107,7 @@ const climateRiskData = {
         "topDisasterType": "Fire",
         "totalDisasters": 108,
         "nextYearTrend": "N/A",
-        "decadeAnomalyPrediction": "Prediction Error"
+        "decadeAnomalyPrediction": "N/A"
     },
     "ID": {
         "riskScore": 30.6,
@@ -459,3 +461,6 @@ const climateRiskData = {
         "decadeAnomalyPrediction": "+0.61\u00b0C Anomaly (10yr)"
     }
 };
+
+// Average Root Mean Squared Error from Time Series Cross-Validation
+validationRMSE = 1.1824;
