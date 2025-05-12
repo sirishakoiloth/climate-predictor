@@ -1,4 +1,8 @@
 import pandas as pd
+import os
+
+# Create the processed directory if it doesn't exist
+os.makedirs("data/processed", exist_ok=True)
 
 # Mapping from full state names to abbreviations
 state_abbrev = {
@@ -17,32 +21,29 @@ state_abbrev = {
     'Wisconsin': 'WI', 'Wyoming': 'WY'
 }
 
-# Load the data, skipping the first two rows
-df = pd.read_csv('us_states_avg_temp_1955_2025.csv', skiprows=2, names=['State', 'Date', 'Temp'])
+# Load the raw CSV file
+df = pd.read_csv('data/raw/us_states_avg_temp_1955_2025.csv', skiprows=2, names=['State', 'Date', 'Temp'])
 
-# Drop any rows with 'Date' as a header or placeholder
+# Drop any rows with 'Date' as a placeholder
 df = df[df['Date'] != 'Date']
 
-# Convert Temp to numeric, and drop invalid values
+# Convert Temp to numeric and drop invalid
 df['Temp'] = pd.to_numeric(df['Temp'], errors='coerce')
 df = df.dropna(subset=['Temp'])
 
 # Extract year from Date
 df['Year'] = df['Date'].astype(str).str[:4].astype(int)
 
-# Convert full state names to abbreviations
+# Convert state names to abbreviations
 df['State'] = df['State'].map(state_abbrev)
-
-# Drop rows where state name was unrecognized
 df = df.dropna(subset=['State'])
 
-# Group and calculate average temp
+# Group by state and year
 annual_avg = df.groupby(['State', 'Year'])['Temp'].mean().reset_index()
-
-# Rename columns
 annual_avg.columns = ['state_id', 'year', 'avg_temp']
 
-# Save to CSV
-annual_avg.to_csv('annual_state_avg_temp_1955_2025.csv', index=False)
+# Save processed CSV
+processed_path = 'data/processed/annual_state_avg_temp_1955_2025.csv'
+annual_avg.to_csv(processed_path, index=False)
 
-print("✅ Saved annual averages with abbreviations and renamed columns to 'annual_state_avg_temp_1955_2024.csv'")
+print(f"✅ Saved processed CSV to {processed_path}")
