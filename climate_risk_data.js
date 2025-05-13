@@ -463,4 +463,4 @@ const climateRiskData = {
 };
 
 // Average Root Mean Squared Error from Time Series Cross-Validation
-validationRMSE = 1.1824;
+const validationRMSE = 1.1824;
