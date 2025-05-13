@@ -10,6 +10,7 @@ __pycache__/
 
 # Raw or large data files
 *.csv
+!data/processed/annual_state_avg_temp_1955_2025.csv
 
 # Mac system files
 .DS_Store
