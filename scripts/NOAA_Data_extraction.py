@@ -1,6 +1,10 @@
 import requests
 import csv
 import time
+import os
+
+# Ensure the directory exists
+os.makedirs('data/raw', exist_ok=True)
 
 # List of (state_id, state_name) from NOAA's state codes (1–48 for contiguous U.S.)
 states = [
@@ -20,7 +24,7 @@ base_url = "https://www.ncei.noaa.gov/access/monitoring/climate-at-a-glance/stat
 start_year = 1955
 end_year = 2025
 
-output_file = 'us_states_avg_temp_1955_2025.csv'
+output_file = 'data/raw/us_states_avg_temp_1955_2025.csv'
 
 with open(output_file, mode='w', newline='') as outfile:
     writer = csv.writer(outfile)
